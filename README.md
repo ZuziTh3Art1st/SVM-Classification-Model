@@ -1,4 +1,4 @@
-**Compatibility` of Dating Detection: Support Vector Machine Model**
+**Compatibility of Dating Detection: Support Vector Machine Model**
 
 **Overview**
 A customer has many preferences on when to date certain men and how much contact they keep with them. Dating sites are the median she uses but wants to know what makes a perfect match for her. The Machine Learning approach of a Support Vector Machine was used as the algorithm to make a system based on her past preference history.
