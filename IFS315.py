@@ -121,7 +121,9 @@ with st.expander("What am I looking at?"):
 
     **The filters observed**
     - Frequent Flyer Miles (Amount Travelled)
+    
     -The amount of hours spent gaming
+    
     -The amount of Ice Cream litres consumed
     
     **The Scatter Plots:** 
