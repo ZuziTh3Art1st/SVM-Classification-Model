@@ -111,3 +111,27 @@ fig2.legend(handles, target_names, loc='upper center', ncol=3, title="Compatibil
 # Save the 2D image and finally show everything
 plottt.tight_layout(rect=[0, 0, 1, 0.90])
 st.pyplot(fig2)
+
+with st.expander("What am I looking at?"):
+    st.write("""
+    **Support Vector Machine (SVM):** This machine learning model helps classify dating profiles by showing decision boundaries between user filters.
+    The data used to make this folder is within the GitHub.
+    
+    **The Graphs:** 
+    1. The **3D Plot** shows how often a person travels, how long is a game played and ice creaam consumed interacts in a three dimensional space.
+
+    
+    2. The **2D Plots** shows the real lines or decision boundaries the SVM drew to seperate the filters in sets of two to accurately show the relationships between them.
+    """)
+
+
+
+
+
+
+
+
+
+
+
+
