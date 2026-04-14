@@ -114,14 +114,27 @@ st.pyplot(fig2)
 
 with st.expander("What am I looking at?"):
     st.write("""
-    **Support Vector Machine (SVM):** This machine learning model helps classify dating profiles by showing decision boundaries between user filters.
-    The data used to make this folder is within the GitHub.
+    **Support Vector Machine (SVM):** 
+    This machine learning model helps classify dating profiles by showing decision boundaries between user filters. 
+    A user wants help in understanding what characteristics make for a perfect match on a dating app.
+    The data used to make this folder is within the GitHub folder and values have been normalized to fit a 0 to 1 scale called Minimum-Maximum Scaler.
+
+    **The filters observed**
+    - Frequent Flyer Miles (Amount Travelled)
+    -The amount of hours spent gaming
+    -The amount of Ice Cream litres consumed
     
-    **The Graphs:** 
+    **The Scatter Plots:** 
     1. The **3D Plot** shows how often a person travels, how long is a game played and ice creaam consumed interacts in a three dimensional space.
 
     
     2. The **2D Plots** shows the real lines or decision boundaries the SVM drew to seperate the filters in sets of two to accurately show the relationships between them.
+    
+    **FINAL RESULTS**
+    Ice Cream has no effect on what makes a perfect match for the user.
+    The amount travlled usually makes for a perfect match but there must be a balancing act where time spent gaming is mid range in terms of value.
+    
+    
     """)
 
 
