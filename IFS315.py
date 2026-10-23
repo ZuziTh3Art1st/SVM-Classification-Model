@@ -1,158 +1,144 @@
-# Get all relevant libraries
-import pandas as PANDAS
-import numpy as NUMPY7
-import matplotlib.pyplot as plottt
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.inspection import DecisionBoundaryDisplay
-import matplotlib.cm as cm
 import streamlit as st
 
-st.title("Dating Profile Compatibility Model")
+# 1. Page Configuration (Must be the first Streamlit command)
+st.set_page_config(page_title="Dating Profile Matcher", layout="wide", page_icon="💖")
 
-# Load the raw data and normalize it first
-file_path = 'dating.xls'
-df_raw = PANDAS.read_excel(file_path)
+# 2. Cache the data loading so the app runs much faster on interactions
+@st.cache_data
+def load_data():
+    return pd.read_excel('dating.xls')
 
-# Scale the data to have patterns seen more clearly
+# --- SIDEBAR: Make the app interactive ---
+st.sidebar.header("⚙️ Model Settings")
+c_param = st.sidebar.slider("SVM C-parameter (Regularization)", min_value=0.1, max_value=10.0, value=1.0, step=0.1)
+kernel_type = st.sidebar.selectbox("SVM Kernel", ["rbf", "linear", "poly", "sigmoid"])
+test_size = st.sidebar.slider("Test Set Size (%)", min_value=10, max_value=50, value=20, step=5) / 100
+
+st.title("💖 Dating Profile Compatibility Model")
+st.markdown("Use Support Vector Machines (SVM) to classify dating profiles and find the perfect match based on lifestyle habits.")
+
+# Load and prepare data
+df_raw = load_data()
 scaler = MinMaxScaler()
 cols_to_scale = ['MILES', '% TIME GAMING', 'L OF ICE CREAM/WEEK']
-df_normalized = df_raw.copy()
-df_normalized[cols_to_scale] = scaler.fit_transform(df_raw[cols_to_scale])
+df = df_raw.copy()
+df[cols_to_scale] = scaler.fit_transform(df_raw[cols_to_scale])
 
-# Get the normalized data into the code
-df = df_normalized
-
-# Isolate the data into their categories
-X = df.iloc[:,0:3]
+# Isolate features (X) and target (y)
+X = df.iloc[:, 0:3]
 y = df.iloc[:, 3]
 
-# Split into groups to be trained on
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+# Split the data based on sidebar slider
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
 
-# Get the Support Vector Machine initialized
-svm_model = SVC(kernel='rbf', C=1.0)
-
-# The Support Vector Machine is trained
+# Train the SVM model with dynamic sidebar parameters
+svm_model = SVC(kernel=kernel_type, C=c_param)
 svm_model.fit(X_train, y_train)
-
-# Support Vector Machine makes predictions
 predictions = svm_model.predict(X_test)
 
-# Get model evaluations
-accuracy = accuracy_score(y_test, predictions)
-st.write(f"### Accuracy: {accuracy * 100:.2f}%")
-st.text("Detailed Breakdown:")
-st.text(classification_report(y_test, predictions))
+# --- RESULTS SECTION ---
+st.markdown("### 📊 Model Performance")
+col1, col2 = st.columns([1, 2])
 
-# Obtain three-dimensional visualizations
-fig = plottt.figure(figsize=(10,8))
-ax = fig.add_subplot(111, projection='3d')
+with col1:
+    accuracy = accuracy_score(y_test, predictions)
+    st.metric(label="Model Accuracy", value=f"{accuracy * 100:.2f}%")
 
-categories = df.iloc[:, 3].unique()
-colors = cm.get_cmap('viridis', len(categories))
+with col2:
+    with st.expander("Show Detailed Classification Report"):
+        st.text(classification_report(y_test, predictions))
 
-for i, category in enumerate(categories):
-    # Note the 4-space indent here to prevent Python errors
-    subset = df[df.iloc[:,3] == category]
-    ax.scatter(subset.iloc[:,0], subset.iloc[:,1], subset.iloc[:,2],
-               color=colors(i), label=str(category),
-               alpha=0.7, s=40)
+st.divider()
 
-ax.set_xlabel('Frequent Flyer Miles')
-ax.set_ylabel('Hours of Video Game Played')
-ax.set_zlabel('Consumption of Ice Cream weekly (Liters)')
-ax.set_title('Compatability of Dating Profiles (Values Scaled) - [SVM]')
-ax.legend()
+# --- VISUALIZATIONS SECTION (Using Tabs for better UI) ---
+tab1, tab2, tab3 = st.tabs(["🌐 3D Visualization", "📐 2D Decision Boundaries", "📁 Raw Data Snapshot"])
 
-st.pyplot(fig)
+with tab1:
+    st.subheader("3D Scatter Plot of Features")
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
 
-# Generate two-dimensional graphs
-# Get colouring sorted
-le = LabelEncoder()
-y_encoded = le.fit_transform(y)
-target_names = le.classes_
+    categories = df.iloc[:, 3].unique()
+    # FIXED: Replaced get_cmap with the updated Matplotlib 3.9+ standard
+    colors = mpl.colormaps['viridis'].resampled(len(categories))
 
-# Canvas made
-fig2, axes = plottt.subplots(1, 3, figsize=(18,5))
-feature_names = ['Frequent Flyer Miles', 'Video Game Hours', 'Ice Cream (Liters)']
-feature_pairs = [(0, 1), (0, 2), (1, 2)]
+    for i, category in enumerate(categories):
+        subset = df[df.iloc[:, 3] == category]
+        ax.scatter(subset.iloc[:, 0], subset.iloc[:, 1], subset.iloc[:, 2],
+                   color=colors(i), label=str(category), alpha=0.8, s=50, edgecolors='w')
 
-# Convert X to numpy array so column slicing works in the loop
-X_array = X.to_numpy()
+    ax.set_xlabel('Frequent Flyer Miles')
+    ax.set_ylabel('Gaming (Hours)')
+    ax.set_zlabel('Ice Cream (Liters)')
+    ax.set_title(f'3D Profile Compatibility (Kernel: {kernel_type.upper()})')
+    ax.legend(title="Category")
+    st.pyplot(fig)
 
-# Pairs get looped and graph drawn
-for ax, (feat1, feat2) in zip(axes, feature_pairs):
-    
-    # Get just the two features for the 2D plot
-    X_pair = X_array[:, [feat1, feat2]]
+with tab2:
+    st.subheader("2D Decision Boundaries")
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y)
+    target_names = le.classes_
 
-    # Train a mini SVM to draw the boundary lines
-    clf = SVC(kernel='rbf', C=1.0)
-    clf.fit(X_pair, y_encoded)
+    fig2, axes = plt.subplots(1, 3, figsize=(20, 5))
+    feature_names = ['Frequent Flyer Miles', 'Video Game Hours', 'Ice Cream (Liters)']
+    feature_pairs = [(0, 1), (0, 2), (1, 2)]
+    X_array = X.to_numpy()
 
-    # Draw colored backgrounds
-    DecisionBoundaryDisplay.from_estimator(
-        clf, X_pair, response_method="predict",
-        cmap=plottt.cm.coolwarm, alpha=0.6, ax=ax, 
-        xlabel=feature_names[feat1], ylabel=feature_names[feat2]
-    )
+    for ax, (feat1, feat2) in zip(axes, feature_pairs):
+        X_pair = X_array[:, [feat1, feat2]]
+        
+        # Train a mini SVM to draw the boundary lines for these specific 2 features
+        clf = SVC(kernel=kernel_type, C=c_param)
+        clf.fit(X_pair, y_encoded)
 
-    # Draw actual data points
-    scatter = ax.scatter(X_pair[:,0], X_pair[:,1], c=y_encoded, cmap=plottt.cm.coolwarm, edgecolors='k', s=25)
-    ax.set_title(f"{feature_names[feat1]} vs {feature_names[feat2]} (Scaled)")
+        # Draw colored backgrounds
+        DecisionBoundaryDisplay.from_estimator(
+            clf, X_pair, response_method="predict",
+            cmap=plt.cm.coolwarm, alpha=0.5, ax=ax, 
+            xlabel=feature_names[feat1], ylabel=feature_names[feat2]
+        )
 
-# Add a master legend to the top
-handles, _ = scatter.legend_elements()
-fig2.legend(handles, target_names, loc='upper center', ncol=3, title="Compatibility Category")
+        # Draw actual data points
+        scatter = ax.scatter(X_pair[:, 0], X_pair[:, 1], c=y_encoded, 
+                             cmap=plt.cm.coolwarm, edgecolors='k', s=35)
+        ax.set_title(f"{feature_names[feat1]} vs \n{feature_names[feat2]}")
 
-# Save the 2D image and finally show everything
-plottt.tight_layout(rect=[0, 0, 1, 0.90])
-st.pyplot(fig2)
+    # Add a master legend
+    handles, _ = scatter.legend_elements()
+    fig2.legend(handles, target_names, loc='upper center', ncol=3, title="Compatibility", bbox_to_anchor=(0.5, 1.05))
+    plt.tight_layout(rect=[0, 0, 1, 0.90])
+    st.pyplot(fig2)
 
-with st.expander("What am I looking at?"):
-    st.write("""
-    **Support Vector Machine (SVM):** 
-    This machine learning model helps classify dating profiles by showing decision boundaries between user filters. 
-    A user wants help in understanding what characteristics make for a perfect match on a dating app.
-    The data used to make this folder is within the GitHub folder and values have been normalized to fit a 0 to 1 scale called Minimum-Maximum Scaler.
+with tab3:
+    st.subheader("Dataset Snapshot")
+    st.dataframe(df.head(50), use_container_width=True)
 
+# --- EXPLANATION SECTION ---
+with st.expander("📖 What am I looking at? (Click to expand)"):
+    st.markdown("""
+    **Support Vector Machine (SVM):**  
+    This machine learning model helps classify dating profiles by finding the best *decision boundaries* to separate different types of matches. The data has been scaled down to fit nicely between 0 and 1 (Min-Max Scaler).
 
-    **The filters observed**
-    1.  Frequent Flyer Miles (Amount Travelled)
-    
-    2.  The amount of hours spent gaming
-    
-    3.  The amount of Ice Cream litres consumed
+    **The Filters Observed:**
+    1. **Frequent Flyer Miles:** The amount of traveling they do.
+    2. **Time Gaming:** The amount of time spent playing video games.
+    3. **Ice Cream:** Liters of ice cream consumed weekly.
 
-    
-    **The Scatter Plots:** 
-    1. The **3D Plot** shows how often a person travels, how long is a game played and ice creaam consumed interacts in a three dimensional space.
+    **The Visuals:**  
+    * **3D Plot:** Shows the actual, real-world relationship between all three variables at the same time.
+    * **2D Plots:** Show the exact lines (decision boundaries) the SVM algorithm drew to separate the categories when comparing two variables at a time. Play with the **Kernel** and **C-Parameter** in the sidebar to watch how the model changes its math!
 
-    
-    2. The **2D Plots** shows the real lines or decision boundaries the SVM drew to seperate the filters in sets of two to accurately show the relationships between them.
-
-
-    The 3D plots show the real relationship between the 3 filers but having 2d graphs comparing two variables a time helps in the ease of identifiying patterns
-
-    
-    **FINAL RESULTS**
-    Ice Cream has no effect on what makes a perfect match for the user.
-    The amount travlled usually makes for a perfect match but there must be a balancing act where time spent gaming is mid range in terms of value.
-    
-    
+    **Results Summary:**
+    * Ice Cream generally has very little effect on making a perfect match.
+    * Frequent flying combined with a moderate, balanced amount of gaming is usually the sweet spot for a match!
     """)
-
-
-
-
-
-
-
-
-
-
-
-
